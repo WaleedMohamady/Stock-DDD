@@ -1,0 +1,109 @@
+﻿@{
+    ViewData["Title"] = "Purchase";
+}
+
+<div class="row justify-content-center align-items-center min-vh-100">
+    <div class="col-md-6">
+        <div class="text-center">
+            <a asp-controller="Home" asp-action="Index" class="btn btn-outline-primary mb-3">Home</a>
+        </div>
+        <div class="card text-center">
+            <div class="card-header d-flex justify-content-between">
+                <h2 class="card-title">Purchase</h2>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="form-group col-12 mb-2">
+                        <label>Stores</label>
+                        <select id="storesSelectList" class="form-control" asp-items="ViewBag.Stores">
+                            <option selected disabled value="">Select a Store</option>
+                        </select>
+                    </div>
+                    <div class="form-group col-12 mb-2">
+                        <label>Items</label>
+                        <select id="itemsSelectList" class="form-control" asp-items="ViewBag.Items">
+                            <option selected disabled value="">Select an Item</option>
+                        </select>
+                    </div>
+                    <div class="form-group col-12 mb-4">
+                        <label>Current Quantity:</label>
+                        <span id="currentQuantity">-</span>
+                    </div>
+                    <div class="form-group col-6">
+                        <label class="control-label mb-1">Purchased Quantity</label>
+                        <input class="form-control" id="purchasedQuantity" type="number">
+                    </div>
+                    <div class="form-group col-6 text-center p-4">
+                        <button id="buyBtn" class="btn btn-primary">Buy</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+@section Scripts {
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/css/toastr.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/js/toastr.min.js"></script>
+    <script type="text/javascript">
+
+        $("#storesSelectList").on("change", function () {
+            $('#itemsSelectList').val(null);
+            $('#itemsSelectList').trigger('change');
+            $('#currentQuantity').html('-');
+        });
+
+        $("#itemsSelectList").on("change", function () {
+            var storeId = $("#storesSelectList").val();
+            var itemId = $("#itemsSelectList").val();
+            if (itemId != null) {
+                $.ajax({
+                    "url": `/Buy/GetStoreItemQuantity?storeId=${storeId}&itemId=${itemId}`,
+                    "type": "GET",
+                    "datatype": "json",
+                    "contentType": 'application/json',
+                    "success": function (response) {
+                        $('#currentQuantity').html(response);
+                    },
+                    error: function (err) {
+                        toastr.error('Try again later !');
+                    }
+                });
+            }
+        });
+
+        $("#buyBtn").click(function () {
+            var storeId = $("#storesSelectList").val();
+            var itemId = $("#itemsSelectList").val();
+            var purchasedQuantity = $('#purchasedQuantity').val();
+            if (storeId == null || itemId == null) {
+                toastr.error('Please select store and item !');
+            }
+            else if (purchasedQuantity <= 0 || purchasedQuantity == '') {
+                toastr.error('Purchased Quantity must be greater than 0 !');
+                return;
+            }
+            else {
+                $.ajax({
+                    url: `/Buy/BuyItems`,
+                    contentType: 'application/json',
+                    type: 'Post',
+                    data: JSON.stringify({
+                        StoreId: storeId,
+                        ItemId: itemId,
+                        Quantity: purchasedQuantity,
+                    }),
+                    success: function (response) {
+                        toastr.success('Items have been added successfully in the store');
+                        $('#purchasedQuantity').val('');
+                        $('#currentQuantity').html(response);
+                    },
+                    error: function (err) {
+                        toastr.error('Try again later !');
+                    }
+                });
+            }
+        });
+    </script>
+}

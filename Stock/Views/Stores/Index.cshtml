@@ -1,0 +1,215 @@
+﻿@{
+    ViewData["Title"] = "Stores";
+}
+
+<div class="row justify-content-center align-items-center min-vh-100">
+    <div class="col-md-6">
+        <div class="text-center">
+            <a asp-controller="Home" asp-action="Index" class="btn btn-outline-primary mb-3">Home</a>
+        </div>
+        <div class="card text-center">
+            <div class="card-header d-flex justify-content-between">
+                <h2 class="card-title">Stores</h2>
+                <div class="heading-elements">
+                    <a id="addBtn" class="btn btn-primary">Add</a>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table id="storesTable" class="table table-bordered text-center">
+                        <thead class="bg-primary text-white">
+                            <tr>
+                                <th hidden>Id</th>
+                                <th>Name</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="addStoreModal" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-primary">
+                <h3 class="px-1 font-weight-bold text-white">Add Store</h3>
+            </div>
+            <hr class="m-0">
+            <div class="modal-body">
+                <div class="col-md-12">
+                    <div class="form-group">
+                        <label class="control-label">Name</label>
+                        <input class="form-control" id="addedStoreNameInput" type="text">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="saveAddStoreBtn" class="btn btn-primary">Save</button>
+                <button id="closeAddModalBtn" class="btn btn-default">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="editStoreModal" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-primary">
+                <h3 class="px-1 font-weight-bold text-white">Edit Store</h3>
+            </div>
+            <hr class="m-0">
+            <div class="modal-body">
+                <div class="col-md-12">
+                    <div class="form-group">
+                        <label class="control-label">Name</label>
+                        <input class="form-control" id="updatedStoreIdInput" type="text" hidden>
+                        <input class="form-control" id="updatedStoreNameInput" type="text">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="saveEditStoreBtn" class="btn btn-primary">Save</button>
+                <button id="closeEditModalBtn" class="btn btn-default">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+@section Scripts {
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/css/toastr.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/js/toastr.min.js"></script>
+    <script type="text/javascript">
+
+        $(document).ready(function () {
+            LoadStoresTable();
+        });
+
+        function LoadStoresTable() {
+            $.ajax({
+                "url": `/Stores/GetAllStores`,
+                "type": "GET",
+                "datatype": "json",
+                "contentType": 'application/json',
+                "success": function (response) {
+                    var stores = response;
+                    $('#storesTable tbody').empty();
+                    if (stores.length === 0) {
+                        var newRow = '<tr>' +
+                            '<td colspan="2"> There is no stores. Add some ! </td>' +
+                            '</tr>';
+                        $('#storesTable tbody').append(newRow);
+                    }
+                    else {
+                        $.each(stores, function (index, item) {
+                            var newRow = '<tr>' +
+                                '<td hidden>' + item.id + '</td>' +
+                                '<td>' + item.name + '</td>' +
+                                '<td>' +
+                                '<div class ="d-flex justify-content-around">' +
+                                '<button class="btn btn-info" onclick="Edit(this)"> Edit </button>' +
+                                '<button class="btn btn-danger" onclick="Delete(\'' + item.id + '\')"> Delete </button>' +
+                                '</div>' +
+                                '</td>' +
+                                '</tr>';
+
+                            $('#storesTable tbody').append(newRow);
+                        });
+                    }
+                },
+                error: function (err) {
+                    toastr.error('Try again later !');
+                }
+            });
+        }
+
+        $("#addBtn").click(function () {
+            $('#addedStoreNameInput').val('');
+            $('#addStoreModal').modal('toggle');
+        });
+
+        $("#closeAddModalBtn").click(function () {
+            $('#addStoreModal').modal('toggle');
+        });
+
+        $("#saveAddStoreBtn").click(function () {
+            var name = $('#addedStoreNameInput').val();
+            if (name == '') {
+                toastr.error('Please enter a name');
+            }
+            else {
+                $.ajax({
+                    url: `/Stores/Add`,
+                    contentType: 'application/json',
+                    type: 'Post',
+                    data: JSON.stringify({
+                        Name: name
+                    }),
+                    success: function (response) {
+                        toastr.success('Store has been added successfully');
+                        LoadStoresTable();
+                        $('#addStoreModal').modal('toggle');
+                    },
+                    error: function (err) {
+                        toastr.error('Try again later !');
+                    }
+                });
+            }
+        });
+
+        function Edit(button) {
+            var id = button.closest('tr').cells[0].textContent.trim();
+            var name = button.closest('tr').cells[1].textContent.trim();
+            $('#updatedStoreIdInput').val(id);
+            $('#updatedStoreNameInput').val(name);
+            $('#editStoreModal').modal('toggle');
+        }
+
+        $("#closeEditModalBtn").click(function () {
+            $('#editStoreModal').modal('toggle');
+        });
+
+        $("#saveEditStoreBtn").click(function () {
+            var id = $('#updatedStoreIdInput').val();
+            var name = $('#updatedStoreNameInput').val();
+            if (name == '') {
+                toastr.error('Please enter a name');
+            }
+            else {
+                $.ajax({
+                    url: `/Stores/Edit`,
+                    contentType: 'application/json',
+                    type: 'Put',
+                    data: JSON.stringify({
+                        Id: id,
+                        Name: name
+                    }),
+                    success: function (response) {
+                        toastr.success('Store has been updated successfully');
+                        LoadStoresTable();
+                        $('#editStoreModal').modal('toggle');
+                    },
+                    error: function (err) {
+                        toastr.error('Try again later !');
+                    }
+                });
+            }
+        });
+
+        function Delete(id) {
+            $.ajax({
+                url: `/Stores/Delete/${id}`,
+                dataType: 'json',
+                contentType: "application/json",
+                type: "Delete",
+                success: function (response) {
+                    toastr.success('Deleted Successfully..!');
+                    LoadStoresTable();
+                },
+                error: function (err) {
+                    toastr.error('Try again later !');
+                }
+            });
+        }
+    </script>
+}
